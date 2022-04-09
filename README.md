@@ -1,5 +1,7 @@
 # amazon-ranking-tool
 
+This is the tool for amazon keyword ranking.
+
 ## Project setup
 ```
 npm install

@@ -1,0 +1,128 @@
+<template>
+  <div class="keywords-container">
+    <div id="history-chart" class="history-chart"></div>
+  </div>
+</template>
+
+<script>
+import * as echarts from 'echarts';
+export default {
+  name: 'Home',
+  props: {
+    msg: String
+  },
+  data() {
+    return {
+      asinIndex: 0,
+      keywordIndex: 0,
+      asin:{},
+      rankingHistory: [],
+      xData: [],
+      yData: []
+    }
+  },
+  created() {
+    this.asinIndex = this.$route.query.asinIndex
+    this.keywordIndex = this.$route.query.keywordIndex
+
+  },
+  mounted() {
+    this.getKeywordFromDb()
+  },
+  methods: {
+    handleView(index, row) {
+
+    },
+    handleAdd() {
+      this.asinDialogVisible = true
+    },
+    handleAsinConfirm() {
+
+    },
+    removeKeyword(index) {
+      this.asinDetailForm.keywords.splice(index,1)
+    },
+    submitAsinForm(formName) {
+      this.$refs[formName].validate(async (valid) => {
+        if (valid) {
+          const data = {
+            asin: this.asinDetailForm.asin,
+            keywords: this.asinDetailForm.keywords.map(item => {
+              return {
+                keyword: item.value,
+                ranking: []
+              }
+            })
+          }
+          await this.$dbOperation.dbOperation('add', data)
+          this.$message.success('添加成功！')
+          this.asinDialogVisible = false
+          await this.getAsinFromDb()
+        } else {
+          this.$message.error('填写内容有错误！')
+          return false;
+        }
+      });
+    },
+    addKeyword() {
+      this.asinDetailForm.keywords.push({
+        keyword: {
+          value: ''
+        },
+        ranking: []
+      })
+    },
+    resetAsinForm(formName) {
+      this.$refs[formName].resetFields();
+    },
+    initChart() {
+      // 基于准备好的dom，初始化echarts实例
+      let myChart = echarts.init(document.getElementById('history-chart'));
+      // 绘制图表
+      myChart.setOption({
+        title: {
+          text: `${this.asin.asin} - ${this.asin.keywords[this.keywordIndex].keyword}`
+        },
+        tooltip: {},
+        xAxis: {
+          data: this.xData
+        },
+        yAxis: {},
+        series: [
+          {
+            name: '排名',
+            type: 'line',
+            smooth: true,
+            data: this.yData
+          }
+        ]
+      });
+    },
+//********************************************************
+    async getKeywordFromDb() {
+      const data = await this.$dbOperation.dbOperation('getAll')
+      this.asin = data[this.asinIndex]
+      this.rankingHistory = this.asin.keywords[this.keywordIndex].ranking
+      console.log(this.asin)
+      this.xData = this.rankingHistory.map(item => {
+        return new Date(item.time * 1000).toLocaleString()
+      })
+      this.yData = this.rankingHistory.map(item => {
+        return ((item.page - 1) * 60) + item.index
+      })
+      this.initChart()
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss" scoped>
+.keywords-container {
+  padding: 20px;
+  .history-chart {
+    width: 90%;
+    height: 500px;
+  }
+}
+</style>

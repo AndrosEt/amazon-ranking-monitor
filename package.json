@@ -7,9 +7,28 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
   },
+  "files": [
+    "lib"
+  ],
   "dependencies": {
+    "async": "^3.2.3",
+    "bluebird": "^3.7.2",
+    "cheerio": "^1.0.0-rc.3",
     "core-js": "^3.6.5",
-    "vue": "^2.6.11"
+    "dns": "^0.2.2",
+    "echarts": "^5.3.2",
+    "element-ui": "^2.15.6",
+    "json2csv": "^4.5.3",
+    "moment": "^2.27.0",
+    "node-fetch": "^3.2.0",
+    "ora": "^6.1.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4",
+    "socks-proxy-agent": "^5.0.0",
+    "tough-cookie": "^3.0.1",
+    "vue": "^2.6.11",
+    "vue-router": "^3.4.3",
+    "yargs": "^14.2.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.0.5",
@@ -18,7 +37,9 @@
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.6.11"
+    "vue-template-compiler": "^2.6.11",
+    "node-sass": "^4.14.1",
+    "sass-loader": "^9.0.2"
   },
   "eslintConfig": {
     "root": true,
@@ -32,7 +53,13 @@
     "parserOptions": {
       "parser": "babel-eslint"
     },
-    "rules": {}
+    "rules": {
+      "no-async-promise-executor": "off",
+      "no-case-declarations": "off",
+      "no-unused-vars": "off",
+      "no-useless-escape": "off",
+      "no-empty": "off"
+    }
   },
   "browserslist": [
     "> 1%",
