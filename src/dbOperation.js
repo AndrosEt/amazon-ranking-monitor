@@ -1,11 +1,11 @@
-let typeList = ['add', 'get', 'put', 'getAll', 'getAllKeys']
+let typeList = ['add', 'get', 'put', 'getAll', 'getAllKeys', 'delete']
 
 const instance = {
     dbOperation: async function (type, data, key) {
         if (!typeList.includes(type)) {
             throw new Error(`操作类型错误, 仅支持: ${typeList.toString()} 方法`)
         }
-        const readType = type === 'add' || type === 'put' ? 'readwrite' : 'readonly'
+        const readType = type === 'add' || type === 'put'|| type === 'delete' ? 'readwrite' : 'readonly'
         const res = await this.dbInit()
         const objectStore = res.transaction('asin', readType).objectStore('asin')
         const response = new Promise((resolve, reject) => {
@@ -26,6 +26,9 @@ const instance = {
                     break;
                 case 'getAllKeys':
                     request = objectStore[type]()
+                    break;
+                case 'delete':
+                    request = objectStore[type](key)
                     break;
             }
             request.onsuccess = (res) => {

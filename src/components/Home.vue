@@ -32,14 +32,14 @@
           </div>
         </template>
       </el-table-column>
-<!--      <el-table-column label="操作">-->
-<!--        <template slot-scope="scope">-->
-<!--          <el-button-->
-<!--              size="mini"-->
-<!--              @click="handleView(scope.$index, scope.row)">查看-->
-<!--          </el-button>-->
-<!--        </template>-->
-<!--      </el-table-column>-->
+      <el-table-column label="操作">
+        <template slot-scope="scope">
+          <el-button
+              size="mini"
+              @click="handleEdit(scope.$index, scope.row)">编辑
+          </el-button>
+        </template>
+      </el-table-column>
     </el-table>
     <el-dialog
         title="提示"
@@ -53,28 +53,26 @@
               required: true, message: 'asin不能为空', trigger: 'blur'
             }"
         >
-          <el-input v-model="asinDetailForm.asin"></el-input>
+          <el-input v-model="asinDetailForm.asin" :disabled="selectEditAsinIndex !== undefined"></el-input>
         </el-form-item>
         <el-form-item
             v-for="(keyword, index) in asinDetailForm.keywords"
             :label="'关键词' + (index + 1)"
-            :key="keyword.key"
+            :key="index"
             :rules="{
               required: true, message: '关键词不能为空', trigger: 'blur'
             }"
         >
-          <el-input v-model="keyword.value"></el-input>
+          <el-input v-model="keyword.keyword"></el-input>
           <el-button @click.prevent="removeKeyword(index)">删除</el-button>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="submitAsinForm('asinDetailForm')">提交</el-button>
           <el-button @click="addKeyword">新增keyword</el-button>
-          <el-button @click="resetAsinForm('dynamicValidateForm')">重置</el-button>
         </el-form-item>
       </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="asinDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handleAsinConfirm">确 定</el-button>
+      <span slot="footer" class="dialog-footer" v-if="selectEditAsinIndex !== undefined">
+        <el-button type="danger" @click="handleDeleteAsin">删除此 Asin</el-button>
       </span>
     </el-dialog>
   </div>
@@ -121,6 +119,8 @@ export default {
           formatType: 'all_formats',
         },
       },
+      selectEditAsinIndex: undefined,
+      selectEditAsin: undefined
     }
   },
   created() {
@@ -141,8 +141,28 @@ export default {
     handleAdd() {
       this.asinDialogVisible = true
     },
-    handleAsinConfirm() {
+    async handleDeleteAsin() {
+      // await this.$dbOperation.dbOperation('delete',{}, this.dbKeyList[this.selectEditAsinIndex])
 
+      this.$confirm('此操作将永久删除历史, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then( async () => {
+        await this.$dbOperation.dbOperation('delete', {}, this.dbKeyList[this.selectEditAsinIndex])
+        this.$message({
+          type: 'success',
+          message: '删除成功!'
+        });
+        this.asinDialogVisible = false
+        this.resetAsinForm('asinDetailForm')
+        await this.getAsinFromDb()
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        });
+      });
     },
     removeKeyword(index) {
       this.asinDetailForm.keywords.splice(index,1)
@@ -150,17 +170,47 @@ export default {
     submitAsinForm(formName) {
       this.$refs[formName].validate(async (valid) => {
         if (valid) {
-          const data = {
-            asin: this.asinDetailForm.asin,
-            keywords: this.asinDetailForm.keywords.map(item => {
-              return {
-                keyword: item.value,
-                ranking: []
+          if (this.selectEditAsinIndex !== undefined) {
+            // edit
+            let keywords = []
+            // keep the old data
+            this.selectEditAsin.keywords.forEach(selectedItem => {
+              if (this.asinDetailForm.keywords.findIndex(item => { return item.keyword === selectedItem.keyword}) > -1) {
+                keywords.push(selectedItem)
               }
             })
+            // add new keyword
+            this.asinDetailForm.keywords.forEach(formItem => {
+              if (keywords.findIndex(item => {return item.keyword === formItem.keyword}) === -1) {
+                keywords.push({
+                  keyword: formItem.keyword,
+                  ranking: []
+                })
+              }
+            })
+            const data = {
+              asin: this.asinDetailForm.asin,
+              keywords
+            }
+            await this.$dbOperation.dbOperation('put', data, this.dbKeyList[this.selectEditAsinIndex])
+            this.$message.success('修改成功！')
+            this.resetAsinForm('asinDetailForm')
+            this.selectEditAsinIndex = undefined
+          } else {
+            // new
+            const data = {
+              asin: this.asinDetailForm.asin,
+              keywords: this.asinDetailForm.keywords.map(item => {
+                return {
+                  keyword: item.keyword,
+                  ranking: []
+                }
+              })
+            }
+            await this.$dbOperation.dbOperation('add', data)
+            this.$message.success('添加成功！')
+            this.resetAsinForm('asinDetailForm')
           }
-          await this.$dbOperation.dbOperation('add', data)
-          this.$message.success('添加成功！')
           this.asinDialogVisible = false
           await this.getAsinFromDb()
         } else {
@@ -171,9 +221,7 @@ export default {
     },
     addKeyword() {
       this.asinDetailForm.keywords.push({
-        keyword: {
-          value: ''
-        },
+        keyword: '',
         ranking: []
       })
     },
@@ -186,10 +234,17 @@ export default {
         query: {asinIndex, keywordIndex}
       })
     },
+    handleEdit(index, row) {
+      this.asinDialogVisible = true
+      this.selectEditAsin = row
+      this.asinDetailForm = row
+      this.selectEditAsinIndex = index
+    },
 //********************************************************
     async getAsinFromDb() {
-      const data = await this.$dbOperation.dbOperation('getAll')
-      this.asinList = data.map(item => {
+      this.dbDataList = await this.$dbOperation.dbOperation('getAll')
+      this.dbKeyList = await this.$dbOperation.dbOperation('getAllKeys')
+      this.asinList = this.dbDataList.map(item => {
         return {
           asin: item.asin,
           count: item.keywords.length,
@@ -201,7 +256,6 @@ export default {
       // get the asin and keyword list from indexDB
       this.dbDataList = await this.$dbOperation.dbOperation('getAll')
       this.dbKeyList = await this.$dbOperation.dbOperation('getAllKeys')
-      console.log(this.dbDataList)
       await this.listLoop()
 
       // start the task
@@ -228,14 +282,11 @@ export default {
       options.keyword = asin.keywords[j].keyword
       const scraper = await new AmazonScraper(options);
       let data = await scraper.startScraper()
-      console.log(`asin: ${asin.asin}, keyword: ${asin.keywords[j].keyword}`)
       const that = this
       setTimeout(function () {
         that.$nextTick(async () => {
-          console.log(data)
           // update the record
           if (data.result.length > 0) {
-            console.log('put for updating')
             let newRanking = data.result.map(item => {
               return {
                 page: item.page,
@@ -245,8 +296,7 @@ export default {
               }
             })
             asin.keywords[j].ranking.push(...newRanking)
-            const sss = await that.$dbOperation.dbOperation('put', asin, that.dbKeyList[i])
-            console.log(sss)
+            await that.$dbOperation.dbOperation('put', asin, that.dbKeyList[i])
           }
         })
       }, 1000)
