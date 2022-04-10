@@ -1,6 +1,39 @@
 <template>
   <div class="keywords-container">
+    <el-switch
+        v-model="isAd"
+        @change="handleTypeChange"
+        active-text="广告排位"
+        inactive-text="自然排位">
+    </el-switch>
     <div id="history-chart" class="history-chart"></div>
+    <el-divider></el-divider>
+    <el-table
+        v-loading="historyTableLoading"
+        :data="rankingHistory"
+        style="width: 90%">
+      <el-table-column
+          prop="page"
+          label="page"
+          width="100">
+      </el-table-column>
+      <el-table-column
+          prop="index"
+          label="位置"
+          width="100">
+      </el-table-column>
+      <el-table-column
+          prop="type"
+          label="排名类型（广告/正常）"
+          width="180">
+      </el-table-column>
+      <el-table-column
+          prop="time"
+          label="时间"
+          :formatter="timeFormatter"
+          width="180">
+      </el-table-column>
+    </el-table>
   </div>
 </template>
 
@@ -18,7 +51,9 @@ export default {
       asin:{},
       rankingHistory: [],
       xData: [],
-      yData: []
+      yData: [],
+      historyTableLoading: true,
+      isAd: false
     }
   },
   created() {
@@ -98,11 +133,17 @@ export default {
         ]
       });
     },
+    handleTypeChange() {
+      this.getKeywordFromDb()
+    },
+    timeFormatter(row, column) {
+      return new Date(row.time*1000).toLocaleString()
+    },
 //********************************************************
     async getKeywordFromDb() {
       const data = await this.$dbOperation.dbOperation('getAll')
       this.asin = data[this.asinIndex]
-      this.rankingHistory = this.asin.keywords[this.keywordIndex].ranking
+      this.rankingHistory = this.asin.keywords[this.keywordIndex].ranking.filter(item => this.isAd? item.type === 'ad' : item.type === 'normal')
       console.log(this.asin)
       this.xData = this.rankingHistory.map(item => {
         return new Date(item.time * 1000).toLocaleString()
@@ -111,6 +152,7 @@ export default {
         return ((item.page - 1) * 60) + item.index
       })
       this.initChart()
+      this.historyTableLoading = false
     }
   }
 }

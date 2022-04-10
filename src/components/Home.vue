@@ -253,15 +253,13 @@ export default {
       })
     },
     async startTask() {
-      // get the asin and keyword list from indexDB
-      this.dbDataList = await this.$dbOperation.dbOperation('getAll')
-      this.dbKeyList = await this.$dbOperation.dbOperation('getAllKeys')
-      await this.listLoop()
 
       // start the task
-      // setInterval(this.listLoop, 1000* 60)
+      setInterval(this.listLoop, 1000* 60 * 5)
     },
     async listLoop() {
+      this.dbDataList = await this.$dbOperation.dbOperation('getAll')
+      this.dbKeyList = await this.$dbOperation.dbOperation('getAllKeys')
       for(let i = 0;i < this.dbDataList.length;i++) {
         const asin = this.dbDataList[i]
         let keywordList = this.dbDataList[i].keywords

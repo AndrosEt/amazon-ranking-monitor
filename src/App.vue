@@ -38,31 +38,10 @@ export default {
         },
       },
       dbDataList: [],
-      dbKeyList: []
+      dbKeyList: [],
     }
   },
   created() {
-    // this.$dbOperation.dbOperation('add', {
-    //   asin: "B00C625KVE",
-    //   keywords: [
-    //     {keyword: 'tool',
-    //       ranking: [{index: 16, page: 2, type: 'ad', time: 165465634}, {
-    //         index: 16,
-    //         page: 2,
-    //         type: 'normal',
-    //         time: 165465634
-    //       }]
-    //     },
-    //     {keyword: 'tool kit',
-    //       ranking: [{index: 1, page: 1, type: 'ad', time: 165465634}, {
-    //         index: 16,
-    //         page: 2,
-    //         type: 'normal',
-    //         time: 165465634
-    //       }]
-    //     }
-    //   ]
-    // })
   },
   mounted() {
     // await this.checkRanking('B00C625KVE', 'tool')
@@ -73,11 +52,9 @@ export default {
       // get the asin and keyword list from indexDB
       this.dbDataList = await this.$dbOperation.dbOperation('getAll')
       this.dbKeyList = await this.$dbOperation.dbOperation('getAllKeys')
-      console.log(this.dbDataList)
-      await this.listLoop()
 
       // start the task
-      // setInterval(this.listLoop, 1000* 60)
+      this.intervalId = setInterval(this.listLoop, 1000* 60)
     },
     async listLoop() {
       for(let i = 0;i < this.dbDataList.length;i++) {
