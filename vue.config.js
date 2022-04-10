@@ -1,6 +1,6 @@
 module.exports = {
     outputDir:"docs",
-    // publicPath: "/amazon-ranking-tool"
+    publicPath: "/amazon-ranking-tool"
     // 配置反向代理
     // devServer: {
     //     // https: true
