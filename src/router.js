@@ -30,7 +30,7 @@ const routes = [
 
 /*实例化路由*/
 const router = new VueRouter({
-    mode: "history",   //模式修改
+    mode: "hash",   //模式修改
     routes // （简写）相当于 routes: routes
 });
 export default router
