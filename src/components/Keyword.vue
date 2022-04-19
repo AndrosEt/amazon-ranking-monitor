@@ -8,9 +8,19 @@
     </el-switch>
     <div id="history-chart" class="history-chart"></div>
     <el-divider></el-divider>
+    <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="currentPage"
+        :page-sizes="[50, 100, 200, 1000]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total">
+    </el-pagination>
+    <br>
     <el-table
         v-loading="historyTableLoading"
-        :data="rankingHistory"
+        :data="rankingHistoryForTable"
         style="width: 90%">
       <el-table-column
           prop="page"
@@ -34,11 +44,22 @@
           width="180">
       </el-table-column>
     </el-table>
+    <br>
+    <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="currentPage"
+        :page-sizes="[50, 100, 200, 1000]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total">
+    </el-pagination>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts';
+let _ = require('lodash');
 export default {
   name: 'Home',
   props: {
@@ -49,11 +70,16 @@ export default {
       asinIndex: 0,
       keywordIndex: 0,
       asin:{},
-      rankingHistory: [],
+      rankingHistoryForChart: [],
+      rankingHistoryForTable: [],
       xData: [],
       yData: [],
       historyTableLoading: true,
-      isAd: false
+      isAd: false,
+      currentPage: 1,
+      total: 0,
+      pageSize: 50,
+      myChart: undefined
     }
   },
   created() {
@@ -62,6 +88,9 @@ export default {
 
   },
   mounted() {
+    // 基于准备好的dom，初始化echarts实例
+    this.myChart = echarts.init(document.getElementById('history-chart'));
+
     this.getKeywordFromDb()
   },
   methods: {
@@ -111,10 +140,8 @@ export default {
       this.$refs[formName].resetFields();
     },
     initChart() {
-      // 基于准备好的dom，初始化echarts实例
-      let myChart = echarts.init(document.getElementById('history-chart'));
       // 绘制图表
-      myChart.setOption({
+      this.myChart.setOption({
         title: {
           text: `${this.asin.asin} - ${this.asin.keywords[this.keywordIndex].keyword}`
         },
@@ -136,6 +163,15 @@ export default {
     handleTypeChange() {
       this.getKeywordFromDb()
     },
+    async handleSizeChange(val) {
+      this.pageSize = val
+      await this.getKeywordFromDb()
+    },
+    async handleCurrentChange(val) {
+      console.log(val)
+      this.currentPage = val
+      await this.getKeywordFromDb()
+    },
     timeFormatter(row, column) {
       return new Date(row.time*1000).toLocaleString()
     },
@@ -143,12 +179,14 @@ export default {
     async getKeywordFromDb() {
       const data = await this.$dbOperation.dbOperation('getAll')
       this.asin = data[this.asinIndex]
-      this.rankingHistory = this.asin.keywords[this.keywordIndex].ranking.filter(item => this.isAd? item.type === 'ad' : item.type === 'normal')
-      console.log(this.asin)
-      this.xData = this.rankingHistory.map(item => {
+      this.rankingHistoryForChart = this.asin.keywords[this.keywordIndex].ranking.filter(item => this.isAd? item.type === 'ad' : item.type === 'normal')
+      _.reverse(this.rankingHistoryForChart)
+      this.total = this.rankingHistoryForChart.length
+      this.rankingHistoryForTable = this.rankingHistoryForChart.splice((this.currentPage - 1) * this.pageSize, this.pageSize)
+      this.xData = this.rankingHistoryForTable.map(item => {
         return new Date(item.time * 1000).toLocaleString()
       })
-      this.yData = this.rankingHistory.map(item => {
+      this.yData = this.rankingHistoryForTable.map(item => {
         return ((item.page - 1) * 60) + item.index
       })
       this.initChart()
