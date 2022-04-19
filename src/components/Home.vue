@@ -139,6 +139,11 @@ export default {
       })
     },
     handleAdd() {
+      this.asinDetailForm = {
+        asin: '',
+        keywords: []
+      }
+      this.selectEditAsinIndex = undefined
       this.asinDialogVisible = true
     },
     async handleDeleteAsin() {
@@ -255,7 +260,7 @@ export default {
     async startTask() {
 
       // start the task
-      setInterval(this.listLoop, 1000* 60 * 5)
+      setInterval(this.listLoop, 1000* 60 * 1)
     },
     async listLoop() {
       this.dbDataList = await this.$dbOperation.dbOperation('getAll')

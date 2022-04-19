@@ -68,7 +68,7 @@ export default {
     },
     async checkRanking(asin, i, j) {
       let options = {... this.INIT_OPTIONS}
-      options.geo = geo[options.country] ? geo[options.country] : geo['US'];
+      options.geo = geo['US']
       options.scrapeType = 'ranking';
 
       // options.filetype = 'csv'
